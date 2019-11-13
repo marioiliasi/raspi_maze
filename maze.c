@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <wiringPi.h>
+#include <time.h>
 
 #define TRIG_F 21
 #define ECHO_F 22
-#define TRIG_R 23
-#define ECHO_R 24
+#define TRIG_R 24
+#define ECHO_R 23
 
 struct Sensor {
 	int trig, echo;
@@ -66,9 +67,14 @@ double getDistance(struct Sensor sensor) {
 int main(void) {
 	
         setup();
-
+	struct timeval now;
+	gettimeofday(&now, NULL);
+	double startTime = now.tv_usec;
         printf("Distance: %fcm\n", getDistance(sensor_f));
- 	printf("Distance: %fcm\n", getDistance(sensor_r));
-	
+	gettimeofday(&now, NULL);
+	double endTime = now.tv_usec;
+	printf("Measure duration: %f\n", endTime - startTime);
+
+ 	//printf("Distance: %fcm\n", getDistance(sensor_r));
         return 0;
 }
