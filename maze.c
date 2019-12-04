@@ -7,8 +7,12 @@
 #define TRIG_F 21
 #define ECHO_F 22
 
-#define TRIG_R 0
-#define ECHO_R 2
+#define TRIG_R 24
+#define ECHO_R 26
+
+#define TRIG_L 0
+#define ECHO_L 3
+
 
 #define MOTOR_L_F 37
 #define MOTOR_L_B 36
@@ -44,6 +48,9 @@ void setupSensors() {
 	sensor_r.trig = TRIG_R;
 	sensor_r.echo = ECHO_R;
 	setupSensor(sensor_r);
+	sensor_l.trig = TRIG_L;
+	sensor_l.echo = ECHO_L;
+	setupSensor(sensor_l);
 }
 
 
@@ -211,7 +218,8 @@ int main(void) {
 	double endTime = now.tv_usec;
 	printf("Measure duration: %f\n", endTime - startTime);
 	
-	goForward();
+	//goForward();
  	//printf("Distance: %fcm\n", getDistance(sensor_r));
+	//printf("Distance: %fcm\n", getDistance(sensor_l));
         return 0;
 }
