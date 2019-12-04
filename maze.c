@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <wiringPi.h>
 #include <time.h>
+#include <softPwm.h>
 
 #define TRIG_F 21
 #define ECHO_F 22
@@ -17,11 +18,11 @@
 #define MOTOR_R_B 38
 #define MOTOR_R_E 13
 
-#define FORWARD f
-#define BACK b
-#define LEFT l
-#define RIGHT r
-#define STOP s
+#define FORWARD 'f'
+#define BACK 'b'
+#define LEFT 'l'
+#define RIGHT 'r'
+#define STOP 's'
 
 struct Sensor {
 	int trig, echo;
@@ -45,12 +46,6 @@ void setupSensors() {
 	setupSensor(sensor_r);
 }
 
-void setup(){
-	if(wiringPiSetup() < 0){
-		exit(-1);
-	}
-	setupSensors();
-}
 
 double measureDistance(struct Sensor sensor){
 	//Send trig pulse
@@ -91,6 +86,8 @@ void goBack();
 void goRight();
 void goLeft();
 void stopMotors();
+void controlMotors(int lf, int rf, int lb, int rb);
+void setDuty(int value);
 
 void setupMotor(struct Motor motor, int b, int f, int enable, int maxDuty, int working){
 	motor.b = b;
@@ -126,7 +123,7 @@ void setDirection(char direction){
 			controlMotors(LOW, LOW, HIGH, HIGH);
 		case 's':
 			controlMotors(LOW, LOW, LOW, LOW);
-	} default {
+	default :
 		exit -2;
 	}
 }
@@ -134,32 +131,32 @@ void setDirection(char direction){
 void goForward(){
 	motor_l.working = 1;
 	motor_r.working = 1;
-	softPwmWrite(motor_l.enable, motor.duty);
-	softPwmWrite(motor_r.enable, motor.duty);
+	softPwmWrite(motor_l.enable, motor_l.duty);
+	softPwmWrite(motor_r.enable, motor_r.duty);
 	setDirection(FORWARD);
 }
 
 void goBack(){
 	motor_l.working = 0;
 	motor_r.working = 0;
-	softPwmWrite(motor_l.enable, motor.duty);
-	softPwmWrite(motor_r.enable, motor.duty);
+	softPwmWrite(motor_l.enable, motor_l.duty);
+	softPwmWrite(motor_r.enable, motor_r.duty);
 	setDirection(BACK);
 }
 
 void goRight(){
 	motor_l.working = 1;
 	motor_r.working = 0;
-	softPwmWrite(motor_l.enable, motor.duty);
-	softPwmWrite(motor_r.enable, motor.duty);
+	softPwmWrite(motor_l.enable, motor_l.duty);
+	softPwmWrite(motor_r.enable, motor_r.duty);
 	setDirection(RIGHT);
 }
 
 void goLeft(){
 	motor_l.working = 0;
 	motor_r.working = 1;
-	softPwmWrite(motor_l.enable, motor.duty);
-	softPwmWrite(motor_r.enable, motor.duty);
+	softPwmWrite(motor_l.enable, motor_l.duty);
+	softPwmWrite(motor_r.enable, motor_r.duty);
 	setDirection(LEFT);
 }
 
@@ -174,12 +171,13 @@ void stopMotors(){
 		motor_r.working = 0;
 		softPwmWrite(motor_r.enable, 0);
 		stopped = 0;
+	}
 	if(!stopped){
 		setDirection(STOP);
 	}
 }
 
-void controlMotor(int lf, int rf, int lb, int rb){
+void controlMotors(int lf, int rf, int lb, int rb){
 	digitalWrite(motor_l.f, lf);
 	digitalWrite(motor_r.f, rf);
 	digitalWrite(motor_l.b, lb);
@@ -193,17 +191,27 @@ void setDuty(int value){
 	softPwmWrite(motor_l.enable, value);
 }
  
+void setup(){
+	if(wiringPiSetup() < 0){
+		exit(-1);
+	}
+	
+	setupSensors();
+	setupMotors();
+}
+
 int main(void) {
 	
         setup();
 	struct timeval now;
 	gettimeofday(&now, NULL);
-	double startTime = now.tv_usec;
+	double startTime = now.tv_usec; 
         printf("Distance: %fcm\n", getDistance(sensor_f));
 	gettimeofday(&now, NULL);
 	double endTime = now.tv_usec;
 	printf("Measure duration: %f\n", endTime - startTime);
-
- 	printf("Distance: %fcm\n", getDistance(sensor_r));
+	
+	goForward();
+ 	//printf("Distance: %fcm\n", getDistance(sensor_r));
         return 0;
 }
