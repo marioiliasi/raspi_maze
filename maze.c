@@ -15,8 +15,8 @@
 #define ECHO_L 3
 
 
-#define MOTOR_L_F 25
-#define MOTOR_L_B 27
+#define MOTOR_L_F 27
+#define MOTOR_L_B 25
 #define MOTOR_L_E 5
 
 #define MOTOR_R_F 29
@@ -97,19 +97,20 @@ void setupMotor(struct Motor motor, int b, int f, int enable, int maxDuty, int w
 	motor.working = working;
 	
 	pinMode(motor.b, OUTPUT);
-    pinMode(motor.f, OUTPUT);
+    	pinMode(motor.f, OUTPUT);
 	pinMode(motor.enable, PWM_OUTPUT);
-	softPwmCreate(motor.enable, 0, maxDuty);
+	//softPwmCreate(motor.enable, 0, maxDuty);
 	digitalWrite(motor.b, LOW);
 	digitalWrite(motor.f, LOW);
 	
+	printf("Motor pins - %d %d\n", motor.f, motor.b);
+	
 	delay(30);
-	stopMotors();
 }
 
 void setupMotors(){
-	setupMotor(motor_l, 36, 37, 18, 100, 0);
-	setupMotor(motor_r, 38, 40, 13, 100, 0);
+	setupMotor(motor_l, MOTOR_L_B, MOTOR_L_F, MOTOR_L_E, 100, 0);
+	setupMotor(motor_r, MOTOR_R_B, MOTOR_R_F, MOTOR_R_E, 100, 0);
 }
 
 void setDirection(char direction){
@@ -129,8 +130,8 @@ void setDirection(char direction){
 			break;
 		case 's':
 			controlMotors(LOW, LOW, LOW, LOW);
-			softPwmWrite(motor_r.enable, LOW);
-			softPwmWrite(motor_l.enable, LOW);
+			//softPwmWrite(motor_r.enable, LOW);
+			//softPwmWrite(motor_l.enable, LOW);
 			break;
 	default :
 		exit(-2);
@@ -165,12 +166,12 @@ void stopMotors(){
 	int stopped = 1;
 	if(motor_l.working){
 		motor_l.working = 0;
-		softPwmWrite(motor_l.enable, LOW);
+		//softPwmWrite(motor_l.enable, LOW);
 		stopped = 0;
 	}
 	if(motor_r.working){
 		motor_r.working = 0;
-		softPwmWrite(motor_r.enable, LOW);
+		//softPwmWrite(motor_r.enable, LOW);
 		stopped = 0;
 	}
 	if(!stopped){
@@ -183,17 +184,18 @@ void controlMotors(int lf, int rf, int lb, int rb){
 	digitalWrite(motor_r.f, rf);
 	digitalWrite(motor_l.b, lb);
 	digitalWrite(motor_r.b, rb);
-	printf("duty - %d\n", motor_l.duty);
-	softPwmWrite(motor_l.enable, motor_l.duty);
-	softPwmWrite(motor_r.enable, motor_r.duty);
+	printf("%d %d %d %d\n", lf, rf, lb, rb);
+	//printf("duty - %d\n", motor_l.duty);
+	//softPwmWrite(motor_l.enable, motor_l.duty);
+	//softPwmWrite(motor_r.enable, motor_r.duty);
 }
 
-void setDuty(int value){
+/*void setDuty(int value){
 	motor_r.duty = value;
 	motor_l.duty = value;
 	softPwmWrite(motor_r.enable, value);
 	softPwmWrite(motor_l.enable, value);
-}
+}*/
  
 void setup(){
 	if(wiringPiSetup() < 0){
@@ -227,33 +229,106 @@ double getAverageDistance(struct Sensor sensor){
 }
 
 void scan(){
-	FILE *fd;
+	FILE *filed;
 
-	fd = fopen("measurements.csv", "w");
+	filed = fopen("measurements.csv", "w");
 	
-	if (fd == NULL){
+	if (filed == NULL){
 		printf("Error opening file!\n");
 		exit(1);
 	}
 
 	double f, l, r;
+        struct timeval now;
+	gettimeofday(&now, NULL);
+	double startTime = now.tv_usec; 
+	
+	double currentPosition[] = {0, 0};
+	//double oldValues[] = {0, 0};
+	int xDir = 0;
+	int yDir = 1;
+	int oldXDir = 0;
+	int oldYDir = 1;
+	int oldDistance = 0;
+	int ld, rd, fd;
 	while(1){
 		f = getAverageDistance(sensor_f);
 		l = getAverageDistance(sensor_l);
 		r = getAverageDistance(sensor_r);
-		if(f > 50 && l > 50 && r > 50){
+		
+		
+		if(xDir != 0){
+			if(oldDistance != 0){
+				currentPosition[0] += xDir * (f - oldDistance);
+			}
+			ld = currentPosition[1] + xDir * l;
+			rd = currentPosition[1] - xDir * r;
+			fd = currentPosition[0] + xDir * f;
+			
+		}
+		if(yDir != 0){
+			if(oldDistance != 0){
+				currentPosition[1] += yDir * (f - oldDistance);
+			}
+			ld = currentPosition[0] - yDir * l;
+			rd = currentPosition[0] + yDir * r;
+			fd = currentPosition[1] + yDir * f;
+		}
+		//fprintf(filed, "%f, %f, %f\n", l, f, r);
+		printf("distance:%f, %f, %f\n", l, f, r);
+		printf("walls:%f, %f, %f\n", f, l, r);
+		fprintf(filed, "%f, %f, %f\n", ld, fd, rd);
+
+		if(f < 10 && l < 10 && r < 10){//turn around
+			usleep(2000);
+			if(xDir != 0){
+				xDir = -xDir;
+			} else{
+				yDir = -yDir;
+			}
+		} else if(f < 10){//wall in front
+			usleep(2000);
+			if(r > 10){//turn right
+				if(xDir != 0){
+					xDir = 0;
+					yDir = -xDir;
+				} else{
+					yDir = 0;
+					xDir = yDir;
+				}
+			} else if(l > 10){//turn left
+				if(xDir != 0){
+					xDir = 0;
+					yDir = xDir;
+				} else{
+					yDir = 0;
+					xDir = -yDir;
+				}
+			}
+		}
+		
+		oldDistance = f;
+
+		if(oldXDir != xDir){
+			oldXDir = xDir;
+		}
+	        if(oldYDir != yDir){
+			oldYDir = yDir;
+		}
+
+		gettimeofday(&now, NULL);
+		if(f > 100 && l > 100 && r > 100 || now.tv_usec - startTime > 1000000 * 10){
 			break;
 		}
-		fprintf(fd, "%f, %f, %f\n", f, l, r);
-		printf("%f, %f, %f\n", f, l, r);
+		
 		usleep(100);
 	}
-	fclose(fd);
+	fclose(filed);
 }
 
 int main(void) {
 	
-        setup();
+        setup(); 
 	/*struct timeval now;
 	gettimeofday(&now, NULL);
 	double startTime = now.tv_usec; 
@@ -261,11 +336,10 @@ int main(void) {
 	gettimeofday(&now, NULL);
 	double endTime = now.tv_usec;
 	printf("Measure duration: %f\n", endTime - startTime);*/
-	setDuty(100);
-	goForward();
 	scan();
 	printf("Front Distance: %fcm\n", getAverageDistance(sensor_f));
  	printf("Right Distance: %fcm\n", getAverageDistance(sensor_r));
 	printf("Left Distance: %fcm\n", getAverageDistance(sensor_l));
-        return 0;
+	
+    return 0;
 }
