@@ -180,14 +180,15 @@ void stopMotors(){
 }
 
 void controlMotors(int lf, int rf, int lb, int rb){
+	//softPwmWrite(motor_l.enable, motor_l.duty);
+	//softPwmWrite(motor_r.enable, motor_r.duty);
 	digitalWrite(motor_l.f, lf);
 	digitalWrite(motor_r.f, rf);
 	digitalWrite(motor_l.b, lb);
 	digitalWrite(motor_r.b, rb);
 	printf("%d %d %d %d\n", lf, rf, lb, rb);
 	//printf("duty - %d\n", motor_l.duty);
-	//softPwmWrite(motor_l.enable, motor_l.duty);
-	//softPwmWrite(motor_r.enable, motor_r.duty);
+	
 }
 
 /*void setDuty(int value){
@@ -203,7 +204,7 @@ void setup(){
 	}
 	
 	setupSensors();
-	setupMotors();
+	//setupMotors();
 }
 
 double getAverageDistance(struct Sensor sensor){
@@ -276,7 +277,7 @@ void scan(){
 		}
 		//fprintf(filed, "%f, %f, %f\n", l, f, r);
 		printf("distance:%f, %f, %f\n", l, f, r);
-		printf("walls:%f, %f, %f\n", f, l, r);
+		//printf("walls:%f, %f, %f\n", f, l, r);
 		fprintf(filed, "%f, %f, %f\n", ld, fd, rd);
 
 		if(f < 10 && l < 10 && r < 10){//turn around
@@ -337,6 +338,12 @@ int main(void) {
 	double endTime = now.tv_usec;
 	printf("Measure duration: %f\n", endTime - startTime);*/
 	scan();
+	/*pinMode(MOTOR_L_F, OUTPUT);
+	pinMode(MOTOR_L_B, OUTPUT);
+	softPwmCreate(MOTOR_L_E, 100, 100);
+	digitalWrite(MOTOR_L_F, HIGH);
+	digitalWrite(MOTOR_L_F, 0);
+	pwmWrite(MOTOR_L_E, 100);*/
 	printf("Front Distance: %fcm\n", getAverageDistance(sensor_f));
  	printf("Right Distance: %fcm\n", getAverageDistance(sensor_r));
 	printf("Left Distance: %fcm\n", getAverageDistance(sensor_l));
